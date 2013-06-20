@@ -1,4 +1,4 @@
-package util
+package domain
 
 import scala.collection.JavaConversions._
 
@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream
 import org.apache.commons.codec.binary.Hex
 import org.bouncycastle.bcpg.PublicKeyAlgorithmTags
 import org.apache.commons.lang3.StringUtils
+import com.github.nscala_time.time.Imports._
 
 /**
  * @author geoff
@@ -15,28 +16,30 @@ import org.apache.commons.lang3.StringUtils
 abstract class PublicKey {
   val id: String
   val fingerprint: String
-  val length: Int
+  val bitStrength: Int
   val algorithm: String
-  val createDate: java.util.Date
+  val createDate: DateTime
   val userIds: List[String]
   val isRevoked: Boolean
+  val rawKey: String
 }
 
 case class NoPublicKey() extends PublicKey {
   val id = null
   val fingerprint = null
-  val length = 0
+  val bitStrength = 0
   val algorithm = null
   val createDate = null
   val userIds = List()
   val isRevoked = true
+  val rawKey = null
 }
 
-case class FoundPublicKey(key: PGPPublicKey) extends PublicKey {
+case class ParsedPublicKey(rawKey: String, key: PGPPublicKey) extends PublicKey {
   val id = formatId(key.getKeyID)
   val fingerprint = formatFingerprint(key.getFingerprint)
-  val length = key.getBitStrength
-  val createDate = key.getCreationTime
+  val bitStrength = key.getBitStrength
+  val createDate = new DateTime(key.getCreationTime)
   val algorithm = algorithmForKey(key.getAlgorithm)
   val userIds = key.getUserIDs.asInstanceOf[java.util.Iterator[String]].toList
   val isRevoked = key.isRevoked
@@ -66,7 +69,7 @@ object PublicKey {
     val in = new ByteArrayInputStream(publicKey.getBytes)
     val publicKeys = getKeyring(in) map { k => k.getPublicKeys.asInstanceOf[java.util.Iterator[PGPPublicKey]].toList } getOrElse List()
     publicKeys.find(k => k.isEncryptionKey)
-      .map((k: PGPPublicKey) => FoundPublicKey(k))
+      .map((k: PGPPublicKey) => ParsedPublicKey(publicKey, k))
       .getOrElse(NoPublicKey())
   }
 
@@ -84,3 +87,4 @@ object PublicKey {
     }
   }
 }
+

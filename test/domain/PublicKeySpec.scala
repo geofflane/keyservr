@@ -1,4 +1,4 @@
-package util
+package domain
 
 import org.specs2.mutable._
 
@@ -40,7 +40,7 @@ k2jMa3uu9qerETw=
       pk.fingerprint must be equalTo "B97D 244A 92DF A4DD 69CC 0DA7 0FBB 1018 5B6B F75E"
     }
     "generate the proper length" in {
-      pk.length must be equalTo 2048
+      pk.bitStrength must be equalTo 2048
     }
     "generate the proper algorithm" in {
       pk.algorithm must be equalTo "RSA (Encrypt & Sign)"
@@ -60,7 +60,7 @@ k2jMa3uu9qerETw=
       pk.fingerprint must beNull
     }
     "generate no length" in {
-      pk.length must be equalTo 0
+      pk.bitStrength must be equalTo 0
     }
     "generate no algorithm" in {
       pk.algorithm must beNull

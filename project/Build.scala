@@ -10,6 +10,8 @@ object ApplicationBuild extends Build {
   val appDependencies = Seq(
     // Add your project dependencies here,
     "org.bouncycastle" % "bcpg-jdk15on" % "1.49",
+    "com.github.nscala-time" %% "nscala-time" % "0.4.2",
+    "org.postgresql" % "postgresql" % "9.2-1003-jdbc4",
     jdbc,
     anorm
   )
