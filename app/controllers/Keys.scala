@@ -2,9 +2,10 @@ package controllers
 
 import play.api.mvc.{Action, Controller}
 import play.api.libs.json._
-import _root_.domain.PublicKey
+import domain.PublicKey
 import com.github.nscala_time.time._
-import data.DbKeyRepository
+import data.{KeyRepository, DbKeyRepository}
+import scala.None
 
 /**
  * @author geoff
@@ -16,6 +17,8 @@ object Keys extends Controller with KeyController {
 
 trait KeyController {
     this: Controller =>
+
+  val keyRepository: KeyRepository
 
   implicit object PublicKeyWrites extends Writes[PublicKey] {
     def writes(pk: PublicKey): JsValue = JsObject(Seq(
@@ -45,16 +48,23 @@ trait KeyController {
     implicit request =>
       request.body.asJson.map {
         json => {
-          val pk = PublicKey((json \ "rawPk").as[String])
-
+          PublicKey((json \ "rawPk").as[String]) match {
+            case Some(pk) => {
+              keyRepository.save(pk)
+              Ok("Success")
+            }
+            case None => BadRequest("Expecting Json Data with rawPk element containing PublicKey")
+          }
         }
+      }.getOrElse {
+        BadRequest("Expecting Json Data")
       }
-
-      Ok("")
   }
 
   def getByEmail(email: String) = Action {
-    Ok("")
+    implicit request =>
+      val pks = keyRepository.findByEmail(email)
+      Ok(Json.toJson(pks))
   }
 }
 

@@ -24,53 +24,42 @@ abstract class PublicKey {
   val rawKey: String
 }
 
-case class NoPublicKey() extends PublicKey {
-  val id = null
-  val fingerprint = null
-  val bitStrength = 0
-  val algorithm = null
-  val createDate = null
-  val userIds = List()
-  val isRevoked = true
-  val rawKey = null
-}
-
-case class ParsedPublicKey(rawKey: String, key: PGPPublicKey) extends PublicKey {
-  val id = formatId(key.getKeyID)
-  val fingerprint = formatFingerprint(key.getFingerprint)
-  val bitStrength = key.getBitStrength
-  val createDate = new DateTime(key.getCreationTime)
-  val algorithm = algorithmForKey(key.getAlgorithm)
-  val userIds = key.getUserIDs.asInstanceOf[java.util.Iterator[String]].toList
-  val isRevoked = key.isRevoked
-
-  private def algorithmForKey(key: Int) = key match {
-    case PublicKeyAlgorithmTags.DIFFIE_HELLMAN => "Diffie Hellman"
-    case PublicKeyAlgorithmTags.DSA => "DSA"
-    case PublicKeyAlgorithmTags.EC => "EC"
-    case PublicKeyAlgorithmTags.ECDSA => "ECDSA"
-    case PublicKeyAlgorithmTags.ELGAMAL_ENCRYPT => "Elgamal (Encrypt)"
-    case PublicKeyAlgorithmTags.ELGAMAL_GENERAL => "Elgamal (Encrypt & Sign)"
-    case PublicKeyAlgorithmTags.RSA_ENCRYPT => "RSA (Encrypt)"
-    case PublicKeyAlgorithmTags.RSA_GENERAL => "RSA (Encrypt & Sign)"
-    case PublicKeyAlgorithmTags.RSA_SIGN => "RSA (Sign)"
-    case _ => "Unknown"
-  }
-
-  private def formatId(id: Long) = {
-    StringUtils.leftPad(id.toHexString, 16, "0").toUpperCase
-  }
-  private def formatFingerprint(bytes: Array[Byte]) =
-    new String(Hex.encodeHex(bytes)).toUpperCase.grouped(4).mkString(" ")
-}
-
 object PublicKey {
-  def apply(publicKey: String): PublicKey = {
+
+  case class ParsedPublicKey(rawKey: String, key: PGPPublicKey) extends PublicKey {
+    val id = formatId(key.getKeyID)
+    val fingerprint = formatFingerprint(key.getFingerprint)
+    val bitStrength = key.getBitStrength
+    val createDate = new DateTime(key.getCreationTime)
+    val algorithm = algorithmForKey(key.getAlgorithm)
+    val userIds = key.getUserIDs.asInstanceOf[java.util.Iterator[String]].toList
+    val isRevoked = key.isRevoked
+
+    private def algorithmForKey(key: Int) = key match {
+      case PublicKeyAlgorithmTags.DIFFIE_HELLMAN => "Diffie Hellman"
+      case PublicKeyAlgorithmTags.DSA => "DSA"
+      case PublicKeyAlgorithmTags.EC => "EC"
+      case PublicKeyAlgorithmTags.ECDSA => "ECDSA"
+      case PublicKeyAlgorithmTags.ELGAMAL_ENCRYPT => "Elgamal (Encrypt)"
+      case PublicKeyAlgorithmTags.ELGAMAL_GENERAL => "Elgamal (Encrypt & Sign)"
+      case PublicKeyAlgorithmTags.RSA_ENCRYPT => "RSA (Encrypt)"
+      case PublicKeyAlgorithmTags.RSA_GENERAL => "RSA (Encrypt & Sign)"
+      case PublicKeyAlgorithmTags.RSA_SIGN => "RSA (Sign)"
+      case _ => "Unknown"
+    }
+
+    private def formatId(id: Long) = {
+      StringUtils.leftPad(id.toHexString, 16, "0").toUpperCase
+    }
+    private def formatFingerprint(bytes: Array[Byte]) =
+      new String(Hex.encodeHex(bytes)).toUpperCase.grouped(4).mkString(" ")
+  }
+
+  def apply(publicKey: String): Option[PublicKey] = {
     val in = new ByteArrayInputStream(publicKey.getBytes)
     val publicKeys = getKeyring(in) map { k => k.getPublicKeys.asInstanceOf[java.util.Iterator[PGPPublicKey]].toList } getOrElse List()
     publicKeys.find(k => k.isEncryptionKey)
       .map((k: PGPPublicKey) => ParsedPublicKey(publicKey, k))
-      .getOrElse(NoPublicKey())
   }
 
   /**

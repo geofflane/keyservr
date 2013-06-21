@@ -11,7 +11,7 @@ import play.api.libs.json.JsString
 
 /**
   */
-class KeySpec extends Specification {
+class KeyParseSpec extends Specification {
   val PK_STRING = """-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: OpenPGP.js v.1.20130228
 Comment: http://openpgpjs.org
@@ -49,7 +49,6 @@ k2jMa3uu9qerETw=
           .withJsonBody(JsObject(Seq("rawPk" -> JsString(PK_STRING))))).get
 
         status(parsed) must equalTo(OK)
-//        println(contentAsString(parsed))
         contentType(parsed) must beSome.which(_ == "application/json")
         val jsonResult = Json.parse(contentAsString(parsed))
         (jsonResult \ "id").as[String] must be equalTo "0FBB10185B6BF75E"

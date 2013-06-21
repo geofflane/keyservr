@@ -12,9 +12,6 @@ import anorm.~
  * @author geoff
  * @since 6/12/13
  */
-case class DbPublicKey(id: String, fingerprint: String, algorithm: String, bitStrength: Int,
-                       createDate: DateTime, isRevoked: Boolean, rawKey: String, userIds: List[String]) extends PublicKey
-
 trait KeyRepository {
   def save(pk: PublicKey)
 
@@ -22,6 +19,10 @@ trait KeyRepository {
 }
 
 object DbKeyRepository extends KeyRepository {
+
+  case class DbPublicKey(id: String, fingerprint: String, algorithm: String, bitStrength: Int,
+                         createDate: DateTime, isRevoked: Boolean, rawKey: String, userIds: List[String]) extends PublicKey
+
   val userIdColumns = {
     str("user_id")
   }
