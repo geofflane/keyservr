@@ -19,12 +19,20 @@ abstract class PublicKey {
   val bitStrength: Int
   val algorithm: String
   val createDate: DateTime
-  val userIds: List[String]
   val isRevoked: Boolean
   val rawKey: String
+  val userIds: List[String]
+  val signatures: List[Signature]
+}
+
+abstract class Signature {
+  val id: String
+  val createDate: DateTime
 }
 
 object PublicKey {
+
+  case class ParsedSignature(id:String, createDate:DateTime) extends Signature
 
   case class ParsedPublicKey(rawKey: String, key: PGPPublicKey) extends PublicKey {
     val id = formatId(key.getKeyID)
@@ -34,6 +42,9 @@ object PublicKey {
     val algorithm = algorithmForKey(key.getAlgorithm)
     val userIds = key.getUserIDs.asInstanceOf[java.util.Iterator[String]].toList
     val isRevoked = key.isRevoked
+    val signatures = key.getSignatures.asInstanceOf[java.util.Iterator[PGPSignature]].toList map { s =>
+      ParsedSignature(formatId(s.getKeyID), new DateTime(s.getCreationTime))
+    }
 
     private def algorithmForKey(key: Int) = key match {
       case PublicKeyAlgorithmTags.DIFFIE_HELLMAN => "Diffie Hellman"
@@ -47,12 +58,6 @@ object PublicKey {
       case PublicKeyAlgorithmTags.RSA_SIGN => "RSA (Sign)"
       case _ => "Unknown"
     }
-
-    private def formatId(id: Long) = {
-      StringUtils.leftPad(id.toHexString, 16, "0").toUpperCase
-    }
-    private def formatFingerprint(bytes: Array[Byte]) =
-      new String(Hex.encodeHex(bytes)).toUpperCase.grouped(4).mkString(" ")
   }
 
   def apply(publicKey: String): Option[PublicKey] = {
@@ -75,5 +80,11 @@ object PublicKey {
       case _ => None
     }
   }
+
+  private def formatId(id: Long) =
+    StringUtils.leftPad(id.toHexString, 16, "0").toUpperCase
+
+  private def formatFingerprint(bytes: Array[Byte]) =
+    new String(Hex.encodeHex(bytes)).toUpperCase.grouped(4).mkString(" ")
 }
 

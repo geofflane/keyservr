@@ -23,8 +23,11 @@ class PublicKeySpec extends Specification {
     "generate the proper algorithm" in {
       pk.algorithm must be equalTo "RSA (Encrypt & Sign)"
     }
-    "has a user id" in {
+    "have a user id" in {
       pk.userIds.head must be equalTo "Geoffrey M Lane <geoff@zorched.net>"
+    }
+    "have a signature" in {
+      pk.signatures.head.id must be equalTo "0FBB10185B6BF75E"
     }
   }
 

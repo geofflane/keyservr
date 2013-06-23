@@ -5,6 +5,7 @@ import anorm.SqlParser._
 import play.api.db.DB
 import play.api.Play.current
 import domain.PublicKey
+import domain.Signature
 import com.github.nscala_time.time.Imports._
 import anorm.~
 
@@ -20,11 +21,36 @@ trait KeyRepository {
 
 object DbKeyRepository extends KeyRepository {
 
+  case class DbSignature(id: String, createDate: DateTime) extends Signature
+
+  case class SimplePublicKey(id: String, fingerprint: String, algorithm: String, bitStrength: Int,
+                             createDate: DateTime, isRevoked: Boolean, rawKey: String) {
+  }
+
   case class DbPublicKey(id: String, fingerprint: String, algorithm: String, bitStrength: Int,
-                         createDate: DateTime, isRevoked: Boolean, rawKey: String, userIds: List[String]) extends PublicKey
+                         createDate: DateTime, isRevoked: Boolean, rawKey: String, userIds: List[String],
+                         signatures: List[Signature]) extends PublicKey {
+  }
 
   val userIdColumns = {
     str("user_id")
+  }
+
+  val userId = {
+    userIdColumns map {
+      case uid => uid
+    }
+  }
+
+  val signatureColumns = {
+    str("sig_key_id") ~
+    date("sig_create_date")
+  }
+
+  val signature = {
+    signatureColumns map {
+      case id ~ cd => DbSignature(id, new DateTime(cd))
+    }
   }
 
   val pubKeyColumns = {
@@ -38,23 +64,41 @@ object DbKeyRepository extends KeyRepository {
       str("rawkey")
   }
 
+  val pubKey = {
+    pubKeyColumns map {
+      case i ~ id ~ fp ~ al ~ bs ~ cd ~ ir ~ rk => SimplePublicKey(id, fp, al, bs, new DateTime(cd), ir, rk)
+    }
+  }
+
   def save(pk: PublicKey) {
-    DB.withConnection { implicit conn =>
+    DB.withTransaction { implicit conn =>
         val id: Option[Long] = SQL( """INSERT INTO public_key (key_id, fingerprint, algorithm, bit_strength, create_date, is_revoked, rawkey)
                              |VALUES({keyId}, {fingerprint}, {algorithm}, {bitStrength}, {createDate}, {isRevoked}, {rawKey});""".stripMargin)
           .onParams(pk.id, pk.fingerprint, pk.algorithm, pk.bitStrength, pk.createDate.toDate, pk.isRevoked, pk.rawKey)
           .executeInsert()
 
         id.map { pkId: Long =>
-            pk.userIds.foreach {
-              uid => {
-                SQL("INSERT INTO public_key_user (public_key_id, user_id) VALUES({publicKeyId}, {userId});")
-                  .onParams(pkId, uid)
-                  .executeInsert()
-              }
+          pk.userIds.foreach {
+            uid => {
+              SQL("INSERT INTO public_key_user (public_key_id, user_id) VALUES({publicKeyId}, {userId});")
+                .onParams(pkId, uid)
+                .executeInsert()
             }
+          }
+
+          pk.signatures.foreach {
+            sig => {
+              SQL("INSERT INTO public_key_signature (public_key_id, key_id, create_date) VALUES ({public_key_id}, {key_id}, {create_date})")
+              .onParams(pkId, sig.id, sig.createDate.toDate)
+              .executeInsert()
+            }
+          }
         }
     }
+  }
+
+  val withKeysAndSigs = pubKey ~ userId ~ (signature ?) map {
+    case pk ~ uid ~ sigs => (pk, uid, sigs)
   }
 
   // Good luck wrapping your head around this one...
@@ -67,18 +111,21 @@ object DbKeyRepository extends KeyRepository {
     DB.withConnection {
       implicit conn =>
         SQL(
-          """SELECT public_key.id, key_id, fingerprint, algorithm, bit_strength, create_date, is_revoked, rawkey, user_id
+          """SELECT public_key.id, public_key.key_id, fingerprint, algorithm, bit_strength, public_key.create_date, is_revoked, rawkey,
+            |   user_id, public_key_signature.key_id as sig_key_id, public_key_signature.create_date as sig_create_date
             |FROM public_key
             |INNER JOIN public_key_user ON public_key_user.public_key_id = public_key.id
+            |LEFT JOIN public_key_signature ON public_key_signature.public_key_id = public_key.id
             |WHERE public_key_user.user_id LIKE '%' || {email} || '%';""".stripMargin)
           .on("email" -> email)
-          .as(pubKeyColumns ~ userIdColumns *)
-          .groupBy(_._1)
-          .map {
-          case ((i ~ id ~ fp ~ al ~ bs ~ cd ~ ir ~ rk), uids) => DbPublicKey(id, fp, al, bs, new DateTime(cd), ir, rk, uids.map {
-            _._2
-          })
-        }.toList
+          .as(withKeysAndSigs *)
+          .groupBy(_._1). map {
+        case (pk, rest) => {
+          val sigs = rest.unzip3._3.map(_.orNull)   // convert Option[DbSignature]s to List[DbSignatures]
+          val uids = rest.map { _._2 }              // Convert String to List[String]
+          DbPublicKey(pk.id, pk.fingerprint, pk.algorithm, pk.bitStrength, pk.createDate, pk.isRevoked, pk.rawKey, uids, sigs)
+        }
+      }.toList
     }
   }
 }

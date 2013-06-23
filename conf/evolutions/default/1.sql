@@ -1,4 +1,4 @@
-# Account SCHEMA
+# public_key and users SCHEMA
 
 # --- !Ups
 
