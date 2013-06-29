@@ -3,6 +3,12 @@ KeyServr - Because that third e would be totally insecure
 
 Proof of Concept for creating a Json API for distributing PGP Public Keys.
 Currently handles only the most basic scenarios, would like to expand it to handle
-things like key signatures, etc.
+things like key signing, etc as well.
 
+
+PlayFramework 2
+  - Anorm
+  - Bouncy Castle (PGP Parsing)
+Backbone.js
+PostgreSQL
 

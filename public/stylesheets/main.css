@@ -79,15 +79,29 @@ body .primary-button {
     font-size: 80%;
 }
 
+dl {
+    overflow: hidden;
+}
+dd:nth-of-type(n+2) {
+    margin-top: 10px;
+}
+dt, dd {
+    margin: 5px;
+    padding: 4px;
+}
 dt {
+    min-width: 11em;
+    float: left;
+    clear: left;
     font-weight: bold;
+    background: #eee;
 }
 dd {
-    margin: 0 0 10px 0;
+    overflow: hidden;
 }
 
-pre {
-    display: block;
-    text-align: left;
-    border-color: black;
+ul, li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }

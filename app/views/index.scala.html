@@ -19,7 +19,6 @@
                     <h2 class="splash-subhead">
                         Easily find the public keys of the people you email using the web or an easy to usa API.
                     </h2>
-
                 </div>
             </div>
         </div>
@@ -28,58 +27,59 @@
     <div class="content pure-u-1">
         <div class="pure-g-r content-ribbon">
             <div class="pure-u-1-3">
-                <div class="l-box">
-                    <h4 class="content-subhead">Search By Email</h4>
-
-                    <form id="searchByEmail">
-                        <label for="email">Email Address</label>
-                        <input id="email" type="text" name="email"/>
-                        <input type="submit" class="pure-button primary-button" value="Search" alt="Find by email"/>
-                    </form>
-
-                </div>
+              <form id="searchByEmail" class="pure-form pure-form-aligned l-box">
+                <fieldset>
+                  <legend>Search By Email</legend>
+                  <div class="pure-group">
+                    <input id="email" type="text" name="email" placeholder="Email Address" class="pure-input-1"/>
+                  </div>
+                  <input type="submit" class="pure-button pure-input-1 notice" value="Search" alt="Find by email"/>
+                </fieldset>
+              </form>
             </div>
 
             <div class="pure-u-2-3">
-                <div class="l-box">
-                    <div id="pk"></div>
-                </div>
+              <div id="pk" class="l-box"></div>
             </div>
         </div>
 
         <div class="pure-g-r">
             <div class="pure-u-1-4">
                 <div class="l-box">
-                    <h3>Subheading</h3>
+                    <h3>Why PGP?</h3>
                     <p>
-                        Donec suscipit, risus vel venenatis ornare, nibh massa ultrices diam, a elementum metus felis sit amet eros. Phasellus pellentesque euismod massa sed pellentesque.
+                        It's personal, it's private, it's nobody's business. It's not about having something to hide
+                        it's about being able to talk with your spouse, your children, your boss without
+                        anyone else reading it.
                     </p>
                 </div>
             </div>
 
             <div class="pure-u-1-4">
                 <div class="l-box">
-                    <h3>Subheading</h3>
+                    <h3>Not Just The Good Guys</h3>
                     <p>
-                        Donec suscipit, risus vel venenatis ornare, nibh massa ultrices diam, a elementum metus felis sit amet eros. Phasellus pellentesque euismod massa sed pellentesque.
+                      If the "good guys" can read your emails, then the "bad guys" can too. And then that information
+                      might be used to steal your identity. What a hassle that would be!
                     </p>
                 </div>
             </div>
 
             <div class="pure-u-1-4">
                 <div class="l-box">
-                    <h3>Subheading</h3>
+                    <h3>We Can't Predict the Future</h3>
                     <p>
-                        Donec suscipit, risus vel venenatis ornare, nibh massa ultrices diam, a elementum metus felis sit amet eros. Phasellus pellentesque euismod massa sed pellentesque.
+                      The freedoms we take for granted might not always be available to us. Making encryption
+                      commonplace means that those who protect their privacy are not different from anyone else.
                     </p>
                 </div>
             </div>
 
             <div class="pure-u-1-4">
                 <div class="l-box">
-                    <h3>Subheading</h3>
+                    <h3>Because You Can</h3>
                     <p>
-                        Donec suscipit, risus vel venenatis ornare, nibh massa ultrices diam, a elementum metus felis sit amet eros. Phasellus pellentesque euismod massa sed pellentesque.
+                      Keeping your private communication private is your right and you shouldn't apologize for it.
                     </p>
                 </div>
             </div>
@@ -87,26 +87,38 @@
     </div>
 
     <script type="text/template" id="pk-template">
-        <h3>Public Key</h3>
-        <div>
-            <dl>
-                <dt>Key Id</dt>
-                <dd><%= id %></dd>
-                <dt>Fingerprint</dt>
-                <dd><%= fingerprint %></dd>
-                <dt>Algorithm</dt>
-                <dd><%= algorithm %></dd>
-                <dt>Bit Strength</dt>
-                <dd><%= bitStrength %></dd>
-                <dt>Create Date</dt>
-                <dd><%= createDate %></dd>
-            </dl>
-            <pre><%= rawPk %></pre>
-        </div>
+      <legend>Public Key</legend>
+      <dl>
+        <dt>Key Id</dt>
+        <dd><%= id %></dd>
+        <dt>Fingerprint</dt>
+        <dd><%= fingerprint %></dd>
+        <dt>Bit Strength / Algorithm</dt>
+        <dd><%= bitStrength %> / <%= algorithm %></dd>
+        <dt>Create Date</dt>
+        <dd><%= createDate %></dd>
+        <dt>User Ids</dt>
+        <dd>
+          <ul>
+            <% _.each(userIds, function(userId) { %>
+            <li><%= userId %></li>
+            <% }); %>
+          </ul>
+        </dd>
+        <dt>Signatures</dt>
+        <dd>
+          <ul>
+            <% _.each(signatures, function(signature) { %>
+            <li><%= signature.id %></li>
+            <% }); %>
+          </ul>
+        </dd>
+        <dt>Key</dt>
+        <dd><pre><%= rawPk %></pre></dd>
+      </dl>
     </script>
     <script type="text/template" id="pk-notfound-template">
-        <h3>Public Key</h3>
-        <div>Not Found</div>
+        <h3>Public Key Not Found</h3>
     </script>
 
     <script type="text/javascript">
