@@ -6,6 +6,7 @@ import domain.PublicKey
 import com.github.nscala_time.time._
 import data.{KeyRepository, DbKeyRepository}
 import scala.None
+import play.api.Logger
 
 /**
  * @author geoff
@@ -28,6 +29,12 @@ trait KeyController {
       "fingerprint" -> JsString(pk.fingerprint),
       "bitStrength" -> JsNumber(pk.bitStrength),
       "userIds" -> JsArray(pk.userIds.map(JsString(_))),
+      "signatures" -> JsArray(pk.signatures.map(sig => {
+        JsObject(Seq(
+          "id"-> JsString(sig.id),
+          "createDate" -> JsString(sig.createDate.toString(StaticDateTimeFormat.forPattern("YYYY-mm-dd'T'hh:MM:ssZ")))
+        ))
+      })),
       "rawPk" -> JsString(pk.rawKey)
     ))
   }
@@ -61,8 +68,14 @@ trait KeyController {
       }
   }
 
+  def update = Action {
+    BadRequest("Not yet implemented")
+  }
+
   def getByEmail(email: String) = Action {
     implicit request =>
+      Logger.info("Searching for PK by '%s'".format(email))
+
       val pks = keyRepository.findByEmail(email)
       Ok(Json.toJson(pks))
   }

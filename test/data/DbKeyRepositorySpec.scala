@@ -14,6 +14,7 @@ class DbKeyRepositorySpec extends Specification {
       val keys = DbKeyRepository.findByEmail("geoff@zorched.net")
       keys.size must be equalTo 1
       keys.head.userIds.head must contain("geoff@zorched.net")
+      keys.head.signatures.size must be equalTo 1
     }
 
     "And not return anything for a non-existant email" in new WithDbData {

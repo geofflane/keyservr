@@ -78,3 +78,16 @@ body .primary-button {
     padding: 1em;
     font-size: 80%;
 }
+
+dt {
+    font-weight: bold;
+}
+dd {
+    margin: 0 0 10px 0;
+}
+
+pre {
+    display: block;
+    text-align: left;
+    border-color: black;
+}

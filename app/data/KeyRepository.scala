@@ -32,28 +32,20 @@ object DbKeyRepository extends KeyRepository {
                          signatures: List[Signature]) extends PublicKey {
   }
 
-  val userIdColumns = {
-    str("user_id")
-  }
-
   val userId = {
-    userIdColumns map {
+    str("user_id") map {
       case uid => uid
     }
   }
 
-  val signatureColumns = {
-    str("sig_key_id") ~
-    date("sig_create_date")
-  }
-
   val signature = {
-    signatureColumns map {
+    str("sig_key_id") ~
+      date("sig_create_date") map {
       case id ~ cd => DbSignature(id, new DateTime(cd))
     }
   }
 
-  val pubKeyColumns = {
+  val pubKey = {
     long("id") ~
       str("key_id") ~
       str("fingerprint") ~
@@ -61,13 +53,13 @@ object DbKeyRepository extends KeyRepository {
       int("bit_strength") ~
       date("create_date") ~
       bool("is_revoked") ~
-      str("rawkey")
-  }
-
-  val pubKey = {
-    pubKeyColumns map {
+      str("rawkey") map {
       case i ~ id ~ fp ~ al ~ bs ~ cd ~ ir ~ rk => SimplePublicKey(id, fp, al, bs, new DateTime(cd), ir, rk)
     }
+  }
+
+  val withKeysAndSigs = pubKey ~ userId ~ (signature ?) map {
+    case pk ~ uid ~ sigs => (pk, uid, sigs)
   }
 
   def save(pk: PublicKey) {
@@ -97,16 +89,12 @@ object DbKeyRepository extends KeyRepository {
     }
   }
 
-  val withKeysAndSigs = pubKey ~ userId ~ (signature ?) map {
-    case pk ~ uid ~ sigs => (pk, uid, sigs)
-  }
-
   // Good luck wrapping your head around this one...
   // JOIN 2 Tables and you get them back as a flat list
   // group by the pubKeyColumns give you Map[pubKeyColumns, Seq(pubKeyColumns, userIdColumns)]
   // map over that and _1 = pubKeyColumns, where _2 = Seq(pubKeyColumns, userIdColumns)
   // match on those parts to build the public key
-  // uids.map { _._2 } pulls out the userIdColumns into a List[String]
+  // rest.map { _._2 } pulls out the userIdColumns into a List[String]
   def findByEmail[B >: PublicKey](email: String): List[B] = {
     DB.withConnection {
       implicit conn =>

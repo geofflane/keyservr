@@ -13,20 +13,20 @@ class KeyWithDbSpec extends Specification {
 
   "Key" should {
     "be queryable by email" in new WithDbData {
-      val parsed = route(FakeRequest(GET, "/keys/forEmail/geoff@zorched.net")).get
+      val parsed = route(FakeRequest(GET, "/keys/email/geoff@zorched.net")).get
       status(parsed) must equalTo(OK)
       val jsonResult = Json.parse(contentAsString(parsed))
       (jsonResult \\ "id").head.as[String] must be equalTo "0FBB10185B6BF75E"
     }
 
     "be saveable" in new WithDbData {
-      val parsed = route(FakeRequest(POST, "/keys/save")
+      val parsed = route(FakeRequest(POST, "/keys")
         .withJsonBody(JsObject(Seq("rawPk" -> JsString(_root_.util.TestUtil.rawPublicKey))))).get
       status(parsed) must equalTo(OK)
     }
 
     "will fail saving if bad data is passed" in new WithDbData {
-      val parsed = route(FakeRequest(POST, "/keys/save")
+      val parsed = route(FakeRequest(POST, "/keys")
         .withJsonBody(JsObject(Seq("rawPk" -> JsString("Some random string"))))).get
       status(parsed) must equalTo(BAD_REQUEST)
     }
