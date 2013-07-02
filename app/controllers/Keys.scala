@@ -58,7 +58,7 @@ trait KeyController {
           PublicKey((json \ "rawPk").as[String]) match {
             case Some(pk) => {
               keyRepository.save(pk)
-              Ok("Success")
+              Ok(Json.toJson(pk))
             }
             case None => BadRequest("Expecting Json Data with rawPk element containing PublicKey")
           }

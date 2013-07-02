@@ -105,3 +105,12 @@ ul, li {
   padding: 0;
   list-style: none;
 }
+
+
+#pk pre {
+    font-size: small;
+}
+
+#savePublicKey textarea {
+    height: 400px;
+}

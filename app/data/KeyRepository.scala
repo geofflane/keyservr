@@ -14,8 +14,18 @@ import anorm.~
  * @since 6/12/13
  */
 trait KeyRepository {
+  /**
+   * Save a public key, its userids, signatures, etc.
+   * @param pk The PublicKey to use
+   */
   def save(pk: PublicKey)
 
+  /**
+   * Search for public key
+   * @param email The email address to search for
+   * @tparam B PublicKey
+   * @return The PublicKeys with that email in the user id
+   */
   def findByEmail[B >: PublicKey](email: String): List[B]
 }
 
@@ -90,10 +100,11 @@ object DbKeyRepository extends KeyRepository {
   }
 
   // Good luck wrapping your head around this one...
-  // JOIN 2 Tables and you get them back as a flat list
-  // group by the pubKeyColumns give you Map[pubKeyColumns, Seq(pubKeyColumns, userIdColumns)]
-  // map over that and _1 = pubKeyColumns, where _2 = Seq(pubKeyColumns, userIdColumns)
+  // JOIN 3 Tables and you get them back as a flat list
+  // group by the pubKeyColumns give you Map[pubKeyColumns, Seq(pubKeyColumns, userIdColumns, signatureColumns)]
+  // map over that and _1 = pubKeyColumns, where _2 = Seq(pubKeyColumns, userIdColumns, signatureColumns)
   // match on those parts to build the public key
+  // rest.unzip3 turns lists of tuples into a tuple of lists
   // rest.map { _._2 } pulls out the userIdColumns into a List[String]
   def findByEmail[B >: PublicKey](email: String): List[B] = {
     DB.withConnection {
