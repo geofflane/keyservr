@@ -149,9 +149,6 @@
         var PublicKeyView = Backbone.View.extend({
             pkTpl: _.template( $('#pk-template').html() ),
             notFoundTpl: _.template( $('#pk-notfound-template').html() ),
-            events: {
-                'dblclick label': 'copy'
-            },
             render: function() {
                 if (this.model) {
                     this.$el.html(this.pkTpl(this.model.toJSON()));
@@ -160,41 +157,41 @@
                 }
                 return this;
             },
-            copy: function() {
-                // executed when pk label is double clicked
+            showPk: function(pk) {
+                this.model = pk;
+                this.render();
             }
         });
 
         var PublicKeySearch = Backbone.Collection.extend({
             model: PublicKey,
-            initialize : function(models, options){
-                this.emailEl = options.emailEl;
+            searchValue: function(email) {
+                this.email = email;
             },
             url: function(){
-                return "/keys/email/" + this.emailEl.val();
+                return "/keys/email/" + this.email;
             }
         });
 
         var PublicKeySearchView = Backbone.View.extend({
             tagName: "form",
             initialize: function () {
-                this.model = new PublicKeySearch([], {emailEl: $("#email")});
+                this.collection = new PublicKeySearch();
+                this.collection.on('reset', this.showPk, this);
             },
             events: {
+                'change #email': 'setEmail',
                 'submit': 'search'
+            },
+            setEmail: function() {
+                this.collection.searchValue(this.$el.find("#email").val());
+            },
+            showPk: function() {
+                app.PublicKeyView.showPk(this.collection.at(0));
             },
             search: function(e) {
                 e.preventDefault();
-                console.log("search");
-                this.model.fetch({
-                    reset: true,
-                    success: function(collection, response, options){
-                        // Seems like there should be a way to do this (or at least force a re-render)
-                        // with the PublicKeyView and some form of binding or event
-                        app.PublicKeyView.model = collection.at(0);
-                        app.PublicKeyView.render();
-                    }
-                });
+                this.collection.fetch({ reset: true });
             }
         });
 
@@ -210,25 +207,25 @@
             tagName: "form",
             initialize: function (options) {
                 this.model = new KeyBlock();
-                this.keyBlock = this.$el.find("#keyBlock");
+                this.$keyBlock = this.$el.find("#keyBlock");
             },
             events: {
-                'submit': 'save'
+                'submit': 'save',
+                'blur #keyBlock': 'setKeyBlock'
             },
-
+            setKeyBlock: function() {
+                this.model.set({rawPk: this.$keyBlock.val()});
+            },
             save: function(e) {
                 e.preventDefault();
-                this.model.set("rawPk", this.keyBlock.val());
-                var jqxhr = this.model.save();
                 var view = this;
+                var jqxhr = this.model.save();
                 if (jqxhr) {
                     jqxhr.success(function(data, status, jqxr) {
                         console.log(data);
-                        view.keyBlock.val("");
-                    }).fail(function(jqXHR, textStatus, errorThrown) {
-                        console.log("failed");
-                        console.log(textStatus);
-                        console.log(errorThrown);
+                        view.$keyBlock.val("");
+                    }).fail(function() {
+                        console.log(arguments);
                     });
                 }
             }
