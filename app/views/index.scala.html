@@ -150,8 +150,9 @@
             pkTpl: _.template( $('#pk-template').html() ),
             notFoundTpl: _.template( $('#pk-notfound-template').html() ),
             render: function() {
+                // Don't love this, there might be a better way?
                 if (this.model) {
-                    this.$el.html(this.pkTpl(this.model.toJSON()));
+                    this.$el.html(this.pkTpl(this.model.attributes));
                 } else {
                     this.$el.html(this.notFoundTpl());
                 }
