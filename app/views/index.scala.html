@@ -27,30 +27,12 @@
     <div class="content pure-u-1">
         <div class="pure-g-r content-ribbon">
             <div class="pure-u-1-2">
-              <form id="searchByEmail" class="pure-form pure-form-aligned l-box">
-                <fieldset>
-                  <legend>Search By Email</legend>
-                  <div class="pure-group">
-                    <input id="email" type="text" name="email" placeholder="Email Address" class="pure-input-1"/>
-                  </div>
-                  <input type="submit" class="pure-button pure-input-1 notice" value="Search" alt="Find by email"/>
-                </fieldset>
-              </form>
-
-              <div id="pk" class="l-box"></div>
-
+                <div id="search"></div>
+                <div id="pk" class="l-box"></div>
             </div>
 
             <div class="pure-u-1-2">
-                <form id="savePublicKey" class="pure-form pure-form-aligned l-box">
-                    <fieldset>
-                        <legend>Save Public Key</legend>
-                        <div class="pure-group">
-                            <textarea id="keyBlock" name="keyBlock" placeholder="Paste Public Key" class="pure-input-1"></textarea>
-                        </div>
-                        <input type="submit" class="pure-button pure-input-1 notice" value="Save" alt="Save Public Key Block"/>
-                    </fieldset>
-                </form>
+                <div id="save"></div>
             </div>
         </div>
 
@@ -97,6 +79,28 @@
         </div>
     </div>
 
+    <script type="text/template" id="pk-search">
+    <form class="pure-form pure-form-aligned l-box">
+        <fieldset>
+            <legend>Search By Email</legend>
+            <div class="pure-group">
+                <input id="email" type="text" name="email" placeholder="Email Address" class="pure-input-1"/>
+            </div>
+            <input type="submit" class="pure-button pure-input-1 notice" value="Search" alt="Find by email"/>
+        </fieldset>
+    </form>
+    </script>
+    <script type="text/template" id="pk-save">
+    <form class="pure-form pure-form-aligned l-box">
+        <fieldset>
+            <legend>Save Public Key</legend>
+            <div class="pure-group">
+                <textarea id="keyBlock" name="keyBlock" placeholder="Paste Public Key" class="pure-input-1"></textarea>
+            </div>
+            <input type="submit" class="pure-button pure-input-1 notice" value="Save" alt="Save Public Key Block"/>
+        </fieldset>
+    </form>
+    </script>
     <script type="text/template" id="pk-template">
       <h3>Public Key</h3>
       <dl>
@@ -127,13 +131,26 @@
       </dl>
       <pre><%= rawPk %></pre>
     </script>
+
     <script type="text/template" id="pk-notfound-template">
         <h3>Public Key Not Found</h3>
     </script>
 
-    <script type="text/javascript">
+    <script type="text/javascript" lang="javascript">
     (function () {
-        var PublicKey = Backbone.Model.extend({
+        var App = {
+            Models: {},
+            Collections: {},
+            Views: {},
+            start: function() {
+                this.SearchView = new App.Views.PublicKeySearch({el: $("#search")});
+                this.SearchView.render();
+                this.KeyBlockView = new App.Views.KeyBlock({el: $("#save")});
+                this.KeyBlockView.render();
+            }
+        };
+
+        App.Models.PublicKey = Backbone.Model.extend({
             defaults: {
                 id: '',
                 createDate: '',
@@ -146,26 +163,15 @@
             }
         });
 
-        var PublicKeyView = Backbone.View.extend({
-            pkTpl: _.template( $('#pk-template').html() ),
-            notFoundTpl: _.template( $('#pk-notfound-template').html() ),
-            render: function() {
-                // Don't love this, there might be a better way?
-                if (this.model) {
-                    this.$el.html(this.pkTpl(this.model.attributes));
-                } else {
-                    this.$el.html(this.notFoundTpl());
-                }
-                return this;
+        App.Models.KeyBlock = Backbone.Model.extend({
+            defaults: {
+                rawPk: ''
             },
-            showPk: function(pk) {
-                this.model = pk;
-                this.render();
-            }
+            url: "/keys"
         });
 
-        var PublicKeySearch = Backbone.Collection.extend({
-            model: PublicKey,
+        App.Collections.PublicKeySearch = Backbone.Collection.extend({
+            model: App.Models.PublicKey,
             searchValue: function(email) {
                 this.email = email;
             },
@@ -174,69 +180,87 @@
             }
         });
 
-        var PublicKeySearchView = Backbone.View.extend({
-            tagName: "form",
+        App.Views.PublicKey = Backbone.View.extend({
+            template: _.template($('#pk-template').html()),
+            render: function() {
+                this.$el.html(this.template(this.model.attributes));
+                $('#pk').html(this.$el);
+                return this;
+            }
+        });
+
+        App.Views.NoPublicKey = Backbone.View.extend({
+            template: _.template( $('#pk-notfound-template').html() ),
+            render: function() {
+                this.$el.html(this.template());
+                $('#pk').html(this.$el);
+                return this;
+            }
+        });
+
+        App.Views.PublicKeySearch = Backbone.View.extend({
+            template: _.template( $('#pk-search').html() ),
             initialize: function () {
-                this.collection = new PublicKeySearch();
+                this.collection = new App.Collections.PublicKeySearch();
                 this.collection.on('reset', this.showPk, this);
             },
             events: {
-                'change #email': 'setEmail',
+                'change input[name=email]': 'setEmail',
                 'submit': 'search'
             },
+            render: function() {
+                this.$el.html(this.template());
+                return this;
+            },
             setEmail: function() {
-                this.collection.searchValue(this.$el.find("#email").val());
+                this.collection.searchValue(this.$el.find("input[name=email]").val());
             },
             showPk: function() {
-                app.PublicKeyView.showPk(this.collection.at(0));
+                console.log("render: " + this.collection.length);
+                if (this.collection.length == 0) {
+                    this.view = new App.Views.NoPublicKey();
+                    this.view.render();
+                } else {
+                    this.view = new App.Views.PublicKey({model: this.collection.at(0)});
+                    this.view.render();
+                }
             },
             search: function(e) {
+                console.log("search");
                 e.preventDefault();
+                if (this.view) {
+                    this.view.remove();
+                    this.view = null;
+                }
                 this.collection.fetch({ reset: true });
             }
         });
 
-
-        var KeyBlock = Backbone.Model.extend({
-            defaults: {
-                rawPk: ''
-            },
-            url: "/keys"
-        });
-
-        var KeyBlockView = Backbone.View.extend({
-            tagName: "form",
+        App.Views.KeyBlock = Backbone.View.extend({
+            template: _.template( $('#pk-save').html() ),
             initialize: function (options) {
-                this.model = new KeyBlock();
-                this.$keyBlock = this.$el.find("#keyBlock");
+                this.model = new App.Models.KeyBlock();
             },
             events: {
                 'submit': 'save',
-                'blur #keyBlock': 'setKeyBlock'
             },
-            setKeyBlock: function() {
-                this.model.set({rawPk: this.$keyBlock.val()});
+            render: function() {
+                this.$el.html(this.template());
+                return this;
             },
             save: function(e) {
                 e.preventDefault();
-                var view = this;
-                var jqxhr = this.model.save();
-                if (jqxhr) {
-                    jqxhr.success(function(data, status, jqxr) {
-                        console.log(data);
-                        view.$keyBlock.val("");
-                    }).fail(function() {
-                        console.log(arguments);
-                    });
-                }
+                var $keyBlock = this.$el.find("#keyBlock");
+                this.model.save({rawPk: $keyBlock.val()}, {success: function(model) {
+                    console.log(model);
+                    $keyBlock.val("");
+                }, error: function() {
+                    console.log(arguments);
+                }});
             }
         });
 
-        var app = app || {};
-        app.SearchView = new PublicKeySearchView({el: $("#searchByEmail")});
-        app.SearchView.render();
-        app.PublicKeyView = new PublicKeyView({el: $('#pk')});
-        app.KeyBlockView = new KeyBlockView({el: $("#savePublicKey"), bodyEl: $("#publicKeyBody")});
+        App.start();
     })();
     </script>
 }
